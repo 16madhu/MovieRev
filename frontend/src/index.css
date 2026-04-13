@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cine-darker text-slate-200 antialiased font-sans;
+  }
+}
+
+.glass-panel {
+  @apply bg-cine-panel/50 backdrop-blur-md border border-slate-700/50 rounded-xl;
+}

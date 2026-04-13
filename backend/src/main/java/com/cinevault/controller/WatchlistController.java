@@ -1,0 +1,59 @@
+package com.cinevault.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/watchlist")
+public class WatchlistController {
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @GetMapping
+    public ResponseEntity<List<Map<String, Object>>> getWatchlist(@RequestParam(required = false) Long userId,
+                                                                  @RequestParam(required = false) String sessionId) {
+        String sql = "SELECT w.*, m.title, m.poster_url FROM watchlist w JOIN movies m ON w.movie_id = m.id WHERE ";
+        Object param = null;
+
+        if (userId != null) {
+            sql += "w.user_id = ?";
+            param = userId;
+        } else if (sessionId != null) {
+            sql += "w.session_id = ?";
+            param = UUID.fromString(sessionId);
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.ok(jdbcTemplate.queryForList(sql, param));
+    }
+
+    @PostMapping
+    public ResponseEntity<?> addToWatchlist(@RequestBody Map<String, Object> body) {
+        Integer movieId = (Integer) body.get("movieId");
+        Object userIdObj = body.get("userId");
+        Object sessionIdObj = body.get("sessionId");
+
+        String sql = "INSERT INTO watchlist (movie_id, user_id, session_id) VALUES (?, ?, ?)";
+        try {
+            jdbcTemplate.update(sql, movieId, userIdObj,
+                    sessionIdObj != null ? UUID.fromString((String)sessionIdObj) : null);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> removeFromWatchlist(@PathVariable Long id) {
+        jdbcTemplate.update("DELETE FROM watchlist WHERE id = ?", id);
+        return ResponseEntity.ok().build();
+    }
+}
